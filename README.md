@@ -11,3 +11,9 @@ You can check the original version of LTNs as follows:
 * python 3.6
 * pytorch >= 0.4.1
 * numpy >= 1.16.3
+
+## To-do Lists
+
+* Implement Predicate [Done]
+* Implement Function
+* Examples
