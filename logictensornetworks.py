@@ -205,6 +205,46 @@ def constant(label, value=None, min_value=None, max_value=None):
     return result
 
 
+class Function(nn.Module):
+    def __init__(self, label, input_shape_spec, output_shape_spec=1,fun_definition=None):
+        super(Function, self).__init__()
+        if type(input_shape_spec) is list:
+            self.number_of_features = sum([int(v.shape[1]) for v in input_shape_spec])
+        elif type(input_shape_spec) is torch.Tensor:
+            self.number_of_features = int(input_shape_spec.shape[1])
+        else:
+            self.number_of_features = input_shape_spec
+        self.output_shape_spec = output_shape_spec
+        if fun_definition is None:
+            # W = tf.Variable(
+            #     tf.random_normal(
+            #         [number_of_features + 1, output_shape_spec], mean=0, stddev=1), name="W" + label)
+            self.W = torch.nn.Parameter(torch.rand([self.number_of_features + 1, self.output_shape_spec]))
+
+            def apply_fun(*args):
+                # tensor_args = tf.concat(args, axis=1)
+                tensor_args = torch.cat(args, axis=1)
+                # X = tf.concat([tf.ones((tf.shape(tensor_args)[0], 1)),
+                #                tensor_args], 1)
+                self.X = torch.nn.Parameter(torch.cat([torch.ones(tensor_args.size([0], 1))]))
+                result = torch.matmul(self.X, self.W)
+                return result
+        else:
+            def apply_fun(*args):
+                return fun_definition(*args)
+        self.apply_fun = apply_fun
+
+    def forward(self, *args):
+        crossed_args, list_of_args_in_crossed_args = cross_args(args)
+        result = self.apply_fun(*list_of_args_in_crossed_args)
+        if crossed_args.doms != []:
+            result = torch.reshape(result, torch.cat(list(crossed_args.size())[:-1] + list(result.size())[-1:], axis=0))
+        else:
+            result = torch.reshape(result, (self.output_shape_spec,))
+        result.doms = crossed_args.doms
+        return result
+
+
 class Predicate(nn.Module):
     def __init__(self, label, number_of_features_or_vars, pred_definition=None, layers=2):
         super(Predicate, self).__init__()
