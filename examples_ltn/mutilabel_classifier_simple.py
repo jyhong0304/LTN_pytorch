@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.optim as optim
 import torch.nn as nn
+import matplotlib.pyplot as plt
 
 # loading data
 
@@ -21,7 +22,7 @@ A = ltn.Predicate("A",2)
 B = ltn.Predicate("B",2)
 
 params = list(A.parameters()) + list(B.parameters())
-optimizer = optim.RMSprop(params)
+optimizer = optim.SGD(params, lr=0.01)
 criterion = nn.MSELoss()
 optimizer.zero_grad()
 output = And(A(a), B(b), Not(A(b)), Forall(x, Implies(A(x), B(x))))
@@ -43,11 +44,12 @@ for i in range(1000):
     loss.backward()
     optimizer.step()
 
+# show results:
+
 Aa = A(a)
 print("A(a): ", Aa)
 Bb = B(b)
 print("B(b): ", Bb)
 Ab = A(b)
 print("A(b): ", Ab)
-
 
