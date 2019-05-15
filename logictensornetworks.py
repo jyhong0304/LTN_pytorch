@@ -173,13 +173,6 @@ def Forall(vars,wff):
 
 
 def variable(label, number_of_features_or_feed):
-    """
-    * To-do Lists
-    - There might be more cases to handle
-    :param label:
-    :param number_of_features_or_feed:
-    :return:
-    """
     if isinstance(number_of_features_or_feed, torch.Tensor):
         result = number_of_features_or_feed.clone()
     else:
@@ -189,18 +182,12 @@ def variable(label, number_of_features_or_feed):
 
 
 def constant(label, value=None, min_value=None, max_value=None):
-    """
-    Create tensor of constant
-    :param label:
-    :param value:
-    :param min_value:
-    :param max_value:
-    :return:
-    """
+    label = "ltn_constant_" + label
     if value is not None:
         result = torch.tensor([value], requires_grad=True)
     else:
         result = torch.empty(1, len(min_value), requires_grad=True).uniform(min_value, max_value)
+    result.label = label
     result.doms = []
     return result
 
@@ -208,6 +195,7 @@ def constant(label, value=None, min_value=None, max_value=None):
 class Function(nn.Module):
     def __init__(self, label, input_shape_spec, output_shape_spec=1,fun_definition=None):
         super(Function, self).__init__()
+        self.label = label
         if type(input_shape_spec) is list:
             self.number_of_features = sum([int(v.shape[1]) for v in input_shape_spec])
         elif type(input_shape_spec) is torch.Tensor:
@@ -229,9 +217,11 @@ class Function(nn.Module):
                 self.X = torch.nn.Parameter(torch.cat([torch.ones(tensor_args.size([0], 1))]))
                 result = torch.matmul(self.X, self.W)
                 return result
+            self.pars = [self.W]
         else:
             def apply_fun(*args):
                 return fun_definition(*args)
+            self.pars = []
         self.apply_fun = apply_fun
 
     def forward(self, *args):
@@ -272,9 +262,11 @@ class Predicate(nn.Module):
                 XV = torch.matmul(X, torch.t(self.V))
                 gX = torch.matmul(torch.tanh(XWX + XV + self.b), self.u)
                 return torch.sigmoid(gX)
+            self.pars = [self.W, self.V, self.b, self.u]
         else:
             def apply_pred(*args):
                 return self.pred_definition(*args)
+            self.pars = []
         self.apply_pred = apply_pred
 
     def forward(self, *args):
