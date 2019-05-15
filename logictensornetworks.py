@@ -176,7 +176,7 @@ def variable(label, number_of_features_or_feed):
     if isinstance(number_of_features_or_feed, torch.Tensor):
         result = number_of_features_or_feed.clone()
     else:
-        result = torch.tensor(number_of_features_or_feed, requires_grad=True)
+        result = torch.tensor(number_of_features_or_feed)
     result.doms = [label]
     return result
 
@@ -184,9 +184,9 @@ def variable(label, number_of_features_or_feed):
 def constant(label, value=None, min_value=None, max_value=None):
     label = "ltn_constant_" + label
     if value is not None:
-        result = torch.tensor([value], requires_grad=True)
+        result = torch.tensor([value])
     else:
-        result = torch.empty(1, len(min_value), requires_grad=True).uniform(min_value, max_value)
+        result = torch.empty(1, len(min_value)).uniform(min_value, max_value)
     result.label = label
     result.doms = []
     return result
@@ -234,6 +234,11 @@ class Function(nn.Module):
         result.doms = crossed_args.doms
         return result
 
+    def reset_parameters(self):
+        if self.pars:
+            self.W = torch.nn.Parameter(torch.rand([self.number_of_features + 1, self.output_shape_spec]))
+            self.pars = [self.W]
+
 
 class Predicate(nn.Module):
     def __init__(self, label, number_of_features_or_vars, pred_definition=None, layers=2):
@@ -280,6 +285,16 @@ class Predicate(nn.Module):
         result.doms = crossed_args.doms
         BIAS = (BIAS + .5 - torch.mean(result)) / 2 * BIAS_factor
         return result
+
+    def reset_parameters(self):
+        if self.pars:
+            self.W = torch.nn.Parameter(
+                torch.rand(self.layers, self.number_of_features + 1, self.number_of_features + 1,
+                           requires_grad=True))
+            self.V = torch.nn.Parameter(torch.rand(self.layers, self.number_of_features + 1, requires_grad=True))
+            self.b = torch.nn.Parameter(torch.ones(1, self.layers, requires_grad=True))
+            self.u = torch.nn.Parameter(torch.ones(self.layers, 1, requires_grad=True))
+            self.pars = [self.W, self.V, self.b, self.u]
 
 
 def cross_args(args):
