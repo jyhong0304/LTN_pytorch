@@ -14,6 +14,8 @@ You can check the original version of LTNs as follows:
 
 ## To-do Lists
 
-* Implement Predicate [Done]
-* Implement Function
-* Examples
+* Implement Predicate - Ver 0.5
+* Implement Function - Ver 0.5
+* Implement the wrapper of LTNs - Ver 0.1
+* Examples - Ver 0.1
+
