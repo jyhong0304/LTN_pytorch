@@ -1,31 +1,26 @@
-# -*- coding: utf-8 -*-
 import logging; logging.basicConfig(level=logging.INFO)
-
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
-
+import matplotlib.pyplot as plt
 import logictensornetworks_wrapper as ltnw
-import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 nr_samples=500
 
-data=np.random.uniform([0,0],[1.,1.],(nr_samples,2)).astype(np.float32)
-data_A=data[np.where(np.sum(np.square(data-[.5,.5]),axis=1)<.09)]
-data_not_A=data[np.where(np.sum(np.square(data-[.5,.5]),axis=1)>=.09)]
+data=np.random.uniform([0,0], [1.,1.], (nr_samples,2)).astype(np.float32)
+data_A=data[np.where(np.sum(np.square(data - [.5,.5]), axis=1) < .09)]
+data_not_A=data[np.where(np.sum(np.square(data-[.5,.5]),axis=1) >= .09)]
 
-ltnw.variable("?data_A",data_A)
-ltnw.variable("?data_not_A",data_not_A)
-ltnw.variable("?data",data)
+ltnw.variable("?data_A", data_A)
+ltnw.variable("?data_not_A", data_not_A)
+ltnw.variable("?data", data)
 
 ltnw.predicate("A", 2)
 
 ltnw.axiom("forall ?data_A: A(?data_A)")
 ltnw.axiom("forall ?data_not_A: ~A(?data_not_A)")
 
-ltnw.initialize_knowledgebase(initial_sat_level_threshold=.99)
-sat_level=ltnw.train(track_sat_levels=1000,sat_level_epsilon=.01)
+ltnw.initialize_knowledgebase(optimizer=torch.optim.RMSprop, initial_sat_level_threshold=.99)
+sat_level=ltnw.train(track_sat_levels=1000, sat_level_epsilon=.01)
 
 plt.figure(figsize=(12,8))
 result=ltnw.ask("A(?data)")
