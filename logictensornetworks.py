@@ -105,11 +105,11 @@ def set_universal_aggreg(aggreg):
 
 
 def set_existential_aggregator(aggreg):
-    assert  aggreg in ['max']
+    assert aggreg in ['max']
     global F_Exists
     if aggreg == "max":
         def F_Exists(axis, wff):
-            return torch.max(wff, dim=axis)
+            return torch.max(wff, dim=axis)[0]
 
 
 set_tnorm("luk")
@@ -172,6 +172,18 @@ def Forall(vars,wff):
     return result
 
 
+def Exists(vars,wff):
+    if type(vars) is not tuple:
+        vars = (vars,)
+    result_doms = [x for x in wff.doms if x not in [var.doms[0] for var in vars]]
+    quantif_axis = [wff.doms.index(var.doms[0]) for var in vars]
+    not_empty_vars = torch.prod(torch.tensor([var.numel() for var in vars])).type(torch.ByteTensor)
+    zeros = torch.zeros((1,) * (len(result_doms) + 1), requires_grad=True)
+    result = F_Exists(quantif_axis[0], wff) if not_empty_vars else zeros
+    result.doms = result_doms
+    return result
+
+
 def variable(label, number_of_features_or_feed):
     if isinstance(number_of_features_or_feed, torch.Tensor):
         result = number_of_features_or_feed.clone()
@@ -221,7 +233,7 @@ class Function(nn.Module):
         crossed_args, list_of_args_in_crossed_args = cross_args(args)
         result = self.apply_fun(*list_of_args_in_crossed_args)
         if crossed_args.doms != []:
-            result = torch.reshape(result, torch.cat(list(crossed_args.size())[:-1] + list(result.size())[-1:], axis=0))
+            result = torch.reshape(result, list(crossed_args.size())[:-1] + list(result.size())[-1:])
         else:
             result = torch.reshape(result, (self.output_shape_spec,))
         result.doms = crossed_args.doms
