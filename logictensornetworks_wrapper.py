@@ -86,7 +86,7 @@ def predicate(label,*args,**kwargs):
         raise Exception("Attempt at redeclaring existing predicate %s" % label)
     else:
         if label in PREDICATES:
-            logging.getLogger(__name__).warnning("Redeclaring existing predicate %s" % label)
+            logging.getLogger(__name__).warning("Redeclaring existing predicate %s" % label)
         PREDICATES[label] = ltn.Predicate(label,*args,**kwargs)
         return PREDICATES[label]
 
