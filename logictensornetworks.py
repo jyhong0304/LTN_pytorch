@@ -204,16 +204,9 @@ class Function(nn.Module):
             self.number_of_features = input_shape_spec
         self.output_shape_spec = output_shape_spec
         if fun_definition is None:
-            # W = tf.Variable(
-            #     tf.random_normal(
-            #         [number_of_features + 1, output_shape_spec], mean=0, stddev=1), name="W" + label)
             self.W = torch.nn.Parameter(torch.rand([self.number_of_features + 1, self.output_shape_spec]))
-
             def apply_fun(*args):
-                # tensor_args = tf.concat(args, axis=1)
                 tensor_args = torch.cat(args, axis=1)
-                # X = tf.concat([tf.ones((tf.shape(tensor_args)[0], 1)),
-                #                tensor_args], 1)
                 self.X = torch.nn.Parameter(torch.cat([torch.ones(tensor_args.size([0], 1))]))
                 result = torch.matmul(self.X, self.W)
                 return result
