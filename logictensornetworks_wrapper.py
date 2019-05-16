@@ -272,18 +272,14 @@ def _build_formula(formula):
 
 def formula(formula, recal=False):
     global FORMULAS
-    if formula not in FORMULAS:
-        FORMULAS[formula] = _build_formula(_parse_formula(formula))
-    if recal and formula in FORMULAS:
+    if formula not in FORMULAS or recal:
         FORMULAS[formula] = _build_formula(_parse_formula(formula))
     return FORMULAS[formula]
 
 
 def axiom(axiom, recal=False):
     global AXIOMS
-    if axiom not in AXIOMS:
-        AXIOMS[axiom] = formula(axiom)
-    if recal and axiom in AXIOMS:
+    if axiom not in AXIOMS or recal:
         AXIOMS[axiom] = formula(axiom, recal)
     return AXIOMS[axiom]
 
@@ -301,6 +297,7 @@ def _compute_feed_dict(feed_dict):
             _feed_dict[k] = v
     return _feed_dict
 
+
 OPTIMIZER=None
 KNOWLEDGEBASE=None
 CRITERION = torch.nn.MSELoss()
@@ -311,8 +308,7 @@ def initialize_knowledgebase(optimizer=None,
                              formula_aggregator=lambda x: torch.mean(torch.cat(x, dim=0)) if x else None,
                              initial_sat_level_threshold=1.0,
                              track_sat_levels=10,
-                             max_trials=100,
-                             feed_dict={}):
+                             max_trials=100):
     global OPTIMIZER, KNOWLEDGEBASE, PARAMETERS, PREDICATES, FUNCTIONS, CRITERION, FORMULA_AGGREGATOR, AXIOMS
 
     FORMULA_AGGREGATOR = formula_aggregator
@@ -330,8 +326,7 @@ def initialize_knowledgebase(optimizer=None,
         for func in FUNCTIONS.values():
             PARAMETERS += list(func.parameters())
         logging.getLogger(__name__).info("Initializing optimizer")
-        # OPTIMIZER = torch.optim.SGD(PARAMETERS, lr=0.1)
-        OPTIMIZER = torch.optim.RMSprop(PARAMETERS)
+        OPTIMIZER = optimizer(PARAMETERS) or torch.optim.SGD(PARAMETERS)
         OPTIMIZER.zero_grad()
         sat_level = CRITERION(KNOWLEDGEBASE, torch.ones_like(KNOWLEDGEBASE))
         for i in range(max_trials):
@@ -360,8 +355,7 @@ def initialize_knowledgebase(optimizer=None,
 
 def train(max_epochs=10000,
           track_sat_levels=100,
-          sat_level_epsilon=.0001,
-          feed_dict={}):
+          sat_level_epsilon=.0001):
     global OPTIMIZER, KNOWLEDGEBASE, FORMULA_AGGREGATOR, AXIOMS
     if KNOWLEDGEBASE is None:
         raise Exception("KNOWLEDGEBASE not initialized. Please run initialize_knowledgebase first.")
@@ -380,10 +374,7 @@ def train(max_epochs=10000,
         OPTIMIZER.step()
 
 
-def ask(term_or_formula, feed_dict={}):
-    # global SESSION
-    # if SESSION is None:
-    #     initialize_tf_session()
+def ask(term_or_formula):
     _t = None
     try:
         _t=_build_formula(_parse_formula(term_or_formula))
@@ -396,6 +387,4 @@ def ask(term_or_formula, feed_dict={}):
     if _t is None:
         raise Exception('Could not parse and build term/formula for "%s"' % term_or_formula)
     else:
-        # _feed_dict=_compute_feed_dict(feed_dict)
-
         return _t.detach().numpy()
