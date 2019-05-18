@@ -326,7 +326,7 @@ def initialize_knowledgebase(optimizer=None,
         for func in FUNCTIONS.values():
             PARAMETERS += list(func.parameters())
         logging.getLogger(__name__).info("Initializing optimizer")
-        OPTIMIZER = optimizer(PARAMETERS) or torch.optim.SGD(PARAMETERS)
+        OPTIMIZER = optimizer(PARAMETERS) if optimizer is not None else torch.optim.SGD(PARAMETERS, lr=0.01)
         OPTIMIZER.zero_grad()
         sat_level = CRITERION(KNOWLEDGEBASE, torch.ones_like(KNOWLEDGEBASE))
         for i in range(max_trials):
