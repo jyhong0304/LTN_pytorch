@@ -22,7 +22,8 @@ def set_tnorm(tnorm):
             return torch.mean(wffs, dim=-1, keepdim=True)
 
         def F_Or(wffs):
-            return torch.max(wffs, dim=-1, keepdim=True)
+            result,_ = torch.max(wffs, dim=-1, keepdim=True)
+            return result
 
         def F_Implies(wff1, wff2):
             return torch.max((wff1 <= wff2).type(torch.FloatTensor), wff2)
@@ -57,7 +58,8 @@ def set_tnorm(tnorm):
             return torch.mean(wffs, dim=-1, keepdim=True)
 
         def F_Or(wffs):
-            return torch.max(wffs, dim=-1, keepdim=True)
+            result,_ = torch.max(wffs, dim=-1, keepdim=True)
+            return result
 
         def F_Implies(wff1, wff2):
             return torch.clamp(2*wff2-wff1, 0, 1)
@@ -88,20 +90,42 @@ def set_tnorm(tnorm):
             return 1 - torch.abs(wff1-wff2)
 
 
+def multi_axes_op(op, input, axes, keepdim=False):
+    '''
+    Performs `torch.max` over multiple dimensions of `input`
+    '''
+    if isinstance(axes, int):
+        axes = [axes]
+    else:
+        axes = sorted(axes)
+    result = input
+    for axis in reversed(axes):
+        if op == 'mean':
+            result = torch.mean(result, axis, keepdim)
+        elif op == 'min':
+            result,_ = torch.min(result, axis, keepdim)
+        elif op == 'max':
+            result,_ = torch.max(result, axis, keepdim)
+    return result
+
+
 def set_universal_aggreg(aggreg):
     assert aggreg in ['hmean','min','mean']
     global F_Forall
     if aggreg == "hmean":
         def F_Forall(axis,wff):
-            return 1 / torch.mean(1/(wff+1e-10), dim=axis)
+            # return 1 / torch.mean(1/(wff+1e-10), dim=axis)
+            return 1 / multi_axes_op('mean', 1/(wff+1e-10), axes=axis)
 
     if aggreg == "min":
         def F_Forall(axis,wff):
-            return torch.min(wff, dim=axis)
+            # return torch.min(wff, dim=axis)
+            return multi_axes_op('min', wff, axes=axis)
 
     if aggreg == "mean":
         def F_Forall(axis,wff):
-            return torch.mean(wff, dim=axis)
+            # return torch.mean(wff, dim=axis)
+            return multi_axes_op('mean', wff, axes=axis)
 
 
 def set_existential_aggregator(aggreg):
@@ -109,7 +133,8 @@ def set_existential_aggregator(aggreg):
     global F_Exists
     if aggreg == "max":
         def F_Exists(axis, wff):
-            return torch.max(wff, dim=axis)[0]
+            # return torch.max(wff, dim=axis)[0]
+            return multi_axes_op('max', wff, axes=axis)
 
 
 set_tnorm("luk")
@@ -166,7 +191,7 @@ def Forall(vars,wff):
     quantif_axis = [wff.doms.index(var.doms[0]) for var in vars]
     not_empty_vars = torch.prod(torch.tensor([var.numel() for var in vars])).type(torch.ByteTensor)
     ones = torch.ones((1,)*(len(result_doms)+1), requires_grad=True)
-    result = F_Forall(quantif_axis[0], wff) if not_empty_vars else ones
+    result = F_Forall(quantif_axis, wff) if not_empty_vars else ones
 
     result.doms = result_doms
     return result
@@ -179,7 +204,7 @@ def Exists(vars,wff):
     quantif_axis = [wff.doms.index(var.doms[0]) for var in vars]
     not_empty_vars = torch.prod(torch.tensor([var.numel() for var in vars])).type(torch.ByteTensor)
     zeros = torch.zeros((1,) * (len(result_doms) + 1), requires_grad=True)
-    result = F_Exists(quantif_axis[0], wff) if not_empty_vars else zeros
+    result = F_Exists(quantif_axis, wff) if not_empty_vars else zeros
     result.doms = result_doms
     return result
 
@@ -284,7 +309,7 @@ class Predicate(nn.Module):
         crossed_args, list_of_args_in_crossed_args = cross_args(args)
         result = self.apply_pred(*list_of_args_in_crossed_args)
         if crossed_args.doms != []:
-            result = torch.reshape(result, list([list(crossed_args.size())[:-1][0], 1]))
+            result = torch.reshape(result, list(list(crossed_args.size())[:-1]) + [1])
         else:
             result = torch.reshape(result, (1,))
         result.doms = crossed_args.doms
@@ -321,7 +346,7 @@ def cross_2args(X,Y):
     eX = X
     eX_doms = [x for x in X.doms]
     for y in Y_X:
-        ex = ex.unsqueeze(0)
+        eX = eX.unsqueeze(0)
         eX_doms = [y] + eX_doms
     eY = Y
     eY_doms = [y for y in Y.doms]
