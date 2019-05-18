@@ -51,7 +51,7 @@ plt.scatter(data_test[:,0],data_test[:,1],c=result.squeeze())
 plt.title("~A(x) - test data")
 plt.show()
 
-ltnw.constant("a",[0.25,.5])
+ltnw.constant("a",[.5,.5])
 ltnw.constant("b",[1.,1.])
 print("a is in A: %s" % ltnw.ask("A(a)"))
 print("b is in A: %s" % ltnw.ask("A(b)"))
