@@ -1,8 +1,6 @@
-# Logic Tensor Networks(LTNs) using Pytorch
+# A Pytorch implmentation of Logic Tensor Networks(LTNs)
 
-## Description
-
-This is Logic Tensor Networks using Pytorch. 
+This is a Pytorch implmentation of Logic Tensor Networks(LTNs).
 You can check the original version of LTNs as follows:
 * [Logic Tensor Networks](https://github.com/logictensornetworks/logictensornetworks)
 
